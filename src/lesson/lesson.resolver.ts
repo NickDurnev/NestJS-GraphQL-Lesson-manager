@@ -1,21 +1,56 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { LessonType } from './lesson.type';
 import { LessonService } from './lesson.service';
+import { CreateLessonInput } from './lesson.input';
+import { AssignSudentsToLessonInput } from './assign-students-to-lesson.input';
+import { Lesson } from './lesson.entity';
+import { StudentService } from 'src/student/student.service';
 
-@Resolver((of) => LessonType)
+@Resolver(() => LessonType)
 export class LessonResolver {
-  constructor(private lessonService: LessonService) {}
-  @Query((returns) => LessonType)
-  lesson(@Args('id') id: string) {
-    this.lessonService.getLesson(id);
+  constructor(
+    private lessonService: LessonService,
+    private studentService: StudentService,
+  ) {}
+
+  @Query(() => [LessonType])
+  async lessons() {
+    return await this.lessonService.getLessons();
   }
 
-  @Mutation((returns) => LessonType)
-  createLesson(
-    @Args('name') name: string,
-    @Args('startDate') startDate: string,
-    @Args('endDate') endDate: string,
+  @Query(() => LessonType)
+  async lesson(@Args('id') id: string) {
+    return await this.lessonService.getLesson(id);
+  }
+
+  @Mutation(() => LessonType)
+  async createLesson(
+    @Args('createLessonInput') createLessonInput: CreateLessonInput,
   ) {
-    return this.lessonService.createLesson(name, startDate, endDate);
+    return await this.lessonService.createLesson(createLessonInput);
+  }
+
+  @Mutation(() => LessonType)
+  async assignStudetsToLesson(
+    @Args('assignStudentsToLessonInput')
+    assignStudentsToLessonInput: AssignSudentsToLessonInput,
+  ) {
+    const { lessonId, studentIds } = assignStudentsToLessonInput;
+    return await this.lessonService.assignStudentsToLesson(
+      lessonId,
+      studentIds,
+    );
+  }
+
+  @ResolveField()
+  async students(@Parent() lesson: Lesson) {
+    return await this.studentService.getLessonStudents(lesson.students);
   }
 }
